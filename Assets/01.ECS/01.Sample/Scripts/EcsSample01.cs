@@ -11,12 +11,12 @@ namespace Es.Ecs.Sample._01
     //=================================================================================================/
     // 独自のISharedComponentDataを継承するFloat型を定義
     //=================================================================================================/
-    public struct FloatData : ISharedComponentData
+    public struct DeltaValueData : IComponentData
     {
         public float Value;
-        public FloatData(float value)
+        public DeltaValueData(float value)
         {
-            Value = value;
+            Value = value * Time.deltaTime;
         }
     }
     //=================================================================================================/
@@ -30,7 +30,7 @@ namespace Es.Ecs.Sample._01
         public ComponentDataArray<Position> postion;
         public ComponentDataArray<Rotation> rotation;
         [ReadOnly]
-        public SharedComponentDataArray<FloatData> delta;
+        public ComponentDataArray<DeltaValueData> delta;
         public int Length;
     }
 
@@ -87,7 +87,7 @@ namespace Es.Ecs.Sample._01
                 typeof (TransformMatrix),
                 typeof (Position),
                 typeof (Rotation),
-                typeof (FloatData)
+                typeof (DeltaValueData)
                 // GPU Instancingを利用できる場合に指定
                 // typeof (MeshInstanceRenderer)
             );
@@ -121,10 +121,7 @@ namespace Es.Ecs.Sample._01
                     {
                         Value = Quaternion.Euler (0f, Random.Range (0.0f, 180.0f), 90f)
                     });
-                    entityManager.SetSharedComponentData (entity, new FloatData
-                    {
-                        Value = Time.deltaTime * delta
-                    });
+                    entityManager.SetComponentData (entity, new DeltaValueData (delta));
                 }
             }
 
