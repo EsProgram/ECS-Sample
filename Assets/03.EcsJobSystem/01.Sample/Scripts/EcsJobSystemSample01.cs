@@ -10,9 +10,8 @@ using UnityEngine;
 
 namespace Es.EcsJobSystem.Sample._01
 {
-    //=================================================================================================/
-    // 独自のISharedComponentDataを継承するFloat型を定義
-    //=================================================================================================/
+    // 独自のIComponentDataを継承するDataを定義。
+    // このDataはDeltaTime * Valueを表現する。
     public struct DeltaValueData : IComponentData
     {
         public float Value;
@@ -21,12 +20,12 @@ namespace Es.EcsJobSystem.Sample._01
             Value = value * Time.deltaTime;
         }
     }
-    //=================================================================================================/
+
     // Groupを定義。
-    // ComponentDataArrayは要求するコンポーネント(のポインタ)。
-    // Lengthには要求するComponentDataを持つEntityの数が格納される。
     // IComponentDataを実装したデータが要求データとなる。
-    //=================================================================================================/
+    // Systemが要求するのは複数のEntityで、Groupはそれを表現するために
+    // IComponentDataの配列であるComponentDataArrayを用いる。
+    // Lengthには要求するComponentDataを持つEntityの数が格納される。
     public struct SampleGroup
     {
         public ComponentDataArray<Position> postion;
@@ -36,14 +35,12 @@ namespace Es.EcsJobSystem.Sample._01
         public int Length;
     }
 
-    //=================================================================================================/
     // ComponentSystemを継承したクラスを作ることで
     // GroupがEntityの持つ型と一致する場合に処理を実行するSystemを作ることができる。
-    // EntityとGroupのもつDataが
-    //=================================================================================================/
     public class SampleSystem : ComponentSystem
     {
-        // Inject属性で要求するグループを指定できる
+        // Inject属性で要求するグループを指定する
+        // (Systemに特定のDataへの依存性を注入する)
         [Inject] private SampleGroup sampleGroup;
 
         // Systemが毎フレーム呼び出す処理
@@ -64,9 +61,7 @@ namespace Es.EcsJobSystem.Sample._01
         }
     }
 
-    //=================================================================================================/
     // ECSを利用するサンプルクラス
-    //=================================================================================================/
     public class EcsJobSystemSample01 : MonoBehaviour
     {
         public Mesh mesh;
@@ -113,8 +108,7 @@ namespace Es.EcsJobSystem.Sample._01
                     //     material = material,
                     // });
 
-                    // 管理者にさっき生成したEntityに対して、コンポーネントを登録してもらう
-                    // PositionはIComponentDataを継承している
+                    // 管理者にさっき生成したEntityに対して、Dataを登録してもらう
                     entityManager.SetComponentData (entity, new Position
                     {
                         Value = new float3 (Random.Range (-20.0f, 20.0f), 20, Random.Range (-20.0f, 20.0f))
@@ -127,6 +121,7 @@ namespace Es.EcsJobSystem.Sample._01
                 }
             }
 
+            // TODO: 描画用EntityとSystem作って描画させたほうが一貫性がある。出来ればそれやりたい。
             // DrawMeshで描画を行う
             // エンティティの Position / Rotation を取得しつつメッシュを描画
             var entities = entityManager.GetAllEntities();

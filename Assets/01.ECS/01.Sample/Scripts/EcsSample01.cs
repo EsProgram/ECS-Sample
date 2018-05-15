@@ -1,16 +1,24 @@
-﻿using Unity.Entities;
+﻿using Unity.Collections;
+using Unity.Collections;
+using Unity.Entities;
+using Unity.Entities;
+using Unity.Jobs;
+using Unity.Jobs;
+using Unity.Mathematics;
 using Unity.Mathematics;
 using Unity.Rendering;
+using Unity.Rendering;
 using Unity.Transforms;
-using Unity.Jobs;
-using Unity.Collections;
+using Unity.Transforms;
 using UnityEngine;
+using UnityEngine;
+
+// TODO: JobSystemで動かせるように色々改造計画
 
 namespace Es.Ecs.Sample._01
 {
-    //=================================================================================================/
-    // 独自のISharedComponentDataを継承するFloat型を定義
-    //=================================================================================================/
+    // 独自のIComponentDataを継承するDataを定義。
+    // このDataはDeltaTime * Valueを表現する。
     public struct DeltaValueData : IComponentData
     {
         public float Value;
@@ -19,12 +27,12 @@ namespace Es.Ecs.Sample._01
             Value = value * Time.deltaTime;
         }
     }
-    //=================================================================================================/
+
     // Groupを定義。
-    // ComponentDataArrayは要求するコンポーネント(のポインタ)。
-    // Lengthには要求するComponentDataを持つEntityの数が格納される。
     // IComponentDataを実装したデータが要求データとなる。
-    //=================================================================================================/
+    // Systemが要求するのは複数のEntityで、Groupはそれを表現するために
+    // IComponentDataの配列であるComponentDataArrayを用いる。
+    // Lengthには要求するComponentDataを持つEntityの数が格納される。
     public struct SampleGroup
     {
         public ComponentDataArray<Position> postion;
@@ -34,18 +42,16 @@ namespace Es.Ecs.Sample._01
         public int Length;
     }
 
-    //=================================================================================================/
     // ComponentSystemを継承したクラスを作ることで
     // GroupがEntityの持つ型と一致する場合に処理を実行するSystemを作ることができる。
-    // EntityとGroupのもつDataが
-    //=================================================================================================/
     public class SampleSystem : ComponentSystem
     {
-        // Inject属性で要求するグループを指定できる
+        // Inject属性で要求するグループを指定する
+        // (Systemに特定のDataへの依存性を注入する)
         [Inject] private SampleGroup sampleGroup;
 
         // Systemが毎フレーム呼び出す処理
-        protected override void OnUpdate ()
+        protected override void OnUpdate()
         {
             for (int i = 0; i < sampleGroup.Length; i++)
             {
@@ -56,15 +62,13 @@ namespace Es.Ecs.Sample._01
 
                 // 回転させる
                 var newRot = sampleGroup.rotation[i];
-                newRot.Value = math.mul (math.normalize (newRot.Value), math.axisAngle (math.up (), sampleGroup.delta[i].Value));
+                newRot.Value = math.mul(math.normalize(newRot.Value), math.axisAngle(math.up(), sampleGroup.delta[i].Value));
                 sampleGroup.rotation[i] = newRot;
             }
         }
     }
 
-    //=================================================================================================/
     // ECSを利用するサンプルクラス
-    //=================================================================================================/
     public class EcsSample01 : MonoBehaviour
     {
         public Mesh mesh;
@@ -76,31 +80,31 @@ namespace Es.Ecs.Sample._01
         private EntityManager entityManager;
         private EntityArchetype archetype;
 
-        [RuntimeInitializeOnLoadMethod (RuntimeInitializeLoadType.AfterSceneLoad)]
-        private void Start ()
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        private void Start()
         {
             // Entityの管理者を取得
-            entityManager = World.Active.GetOrCreateManager<EntityManager> ();
+            entityManager = World.Active.GetOrCreateManager<EntityManager>();
 
             // アーキタイプ(EntityがもつDataタイプの配列)の登録
-            archetype = entityManager.CreateArchetype (
-                typeof (TransformMatrix),
-                typeof (Position),
-                typeof (Rotation),
-                typeof (DeltaValueData)
+            archetype = entityManager.CreateArchetype(
+                typeof(TransformMatrix),
+                typeof(Position),
+                typeof(Rotation),
+                typeof(DeltaValueData)
                 // GPU Instancingを利用できる場合に指定
                 // typeof (MeshInstanceRenderer)
             );
         }
 
-        private void Update ()
+        private void Update()
         {
-            if (Input.GetKey (KeyCode.Space))
+            if (Input.GetKey(KeyCode.Space))
             {
                 for (int i = 0; i < createEntityPerFrame; i++)
                 {
                     // 管理者にEntityを生成して管理してもらう
-                    var entity = entityManager.CreateEntity (archetype);
+                    var entity = entityManager.CreateEntity(archetype);
 
                     // GPU Instancingを行う場合にはMeshInstanceRendererが使える
                     // 管理者にさっき生成したEntityに対して、各Entity間で共有できるDataを登録してもらう
@@ -111,24 +115,24 @@ namespace Es.Ecs.Sample._01
                     //     material = material,
                     // });
 
-                    // 管理者にさっき生成したEntityに対して、コンポーネントを登録してもらう
-                    // PositionはIComponentDataを継承している
-                    entityManager.SetComponentData (entity, new Position
+                    // 管理者にさっき生成したEntityに対して、Dataを登録してもらう
+                    entityManager.SetComponentData(entity, new Position
                     {
-                        Value = new float3 (Random.Range (-20.0f, 20.0f), 20, Random.Range (-20.0f, 20.0f))
+                        Value = new float3(Random.Range(-20.0f, 20.0f), 20, Random.Range(-20.0f, 20.0f))
                     });
-                    entityManager.SetComponentData (entity, new Rotation
+                    entityManager.SetComponentData(entity, new Rotation
                     {
-                        Value = Quaternion.Euler (0f, Random.Range (0.0f, 180.0f), 90f)
+                        Value = Quaternion.Euler(0f, Random.Range(0.0f, 180.0f), 90f)
                     });
-                    entityManager.SetComponentData (entity, new DeltaValueData (delta));
+                    entityManager.SetComponentData(entity, new DeltaValueData(delta));
                 }
             }
 
+            // TODO: 描画用EntityとSystem作って描画させたほうが一貫性がある。出来ればそれやりたい。
             // DrawMeshで描画を行う
             // エンティティの Position / Rotation を取得しつつメッシュを描画
             var entities = entityManager.GetAllEntities();
-            foreach(var entity in entities)
+            foreach (var entity in entities)
             {
                 var position = entityManager.GetComponentData<Position>(entity);
                 var rotation = entityManager.GetComponentData<Rotation>(entity);
