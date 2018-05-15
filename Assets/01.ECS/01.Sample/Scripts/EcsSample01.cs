@@ -2,10 +2,23 @@
 using Unity.Mathematics;
 using Unity.Rendering;
 using Unity.Transforms;
+using Unity.Jobs;
+using Unity.Collections;
 using UnityEngine;
 
 namespace Es.Ecs.Sample._01
 {
+    //=================================================================================================/
+    // 独自のISharedComponentDataを継承するFloat型を定義
+    //=================================================================================================/
+    public struct FloatData : ISharedComponentData
+    {
+        public float Value;
+        public FloatData(float value)
+        {
+            Value = value;
+        }
+    }
     //=================================================================================================/
     // Groupを定義。
     // ComponentDataArrayは要求するコンポーネント(のポインタ)。
@@ -16,6 +29,8 @@ namespace Es.Ecs.Sample._01
     {
         public ComponentDataArray<Position> postion;
         public ComponentDataArray<Rotation> rotation;
+        [ReadOnly]
+        public SharedComponentDataArray<FloatData> delta;
         public int Length;
     }
 
@@ -29,29 +44,20 @@ namespace Es.Ecs.Sample._01
         // Inject属性で要求するグループを指定できる
         [Inject] private SampleGroup sampleGroup;
 
-        private EcsSample01 sample;
-
         // Systemが毎フレーム呼び出す処理
-        //TODO: 外部の値を使わないようにする(SystemのoverrideメソッドではGroupの値のみを使って計算をするように)
         protected override void OnUpdate ()
         {
-            if (sample == null)
-                sample = GameObject.FindObjectOfType<EcsSample01> ();
-
             for (int i = 0; i < sampleGroup.Length; i++)
             {
                 // 落下させる
                 var newPos = sampleGroup.postion[i];
-                newPos.Value.y -= sample.delta * Time.deltaTime;
+                newPos.Value.y -= sampleGroup.delta[i].Value;
                 sampleGroup.postion[i] = newPos;
 
                 // 回転させる
                 var newRot = sampleGroup.rotation[i];
-                newRot.Value = math.mul (math.normalize (newRot.Value), math.axisAngle (math.up (), sample.delta * Time.deltaTime));
+                newRot.Value = math.mul (math.normalize (newRot.Value), math.axisAngle (math.up (), sampleGroup.delta[i].Value));
                 sampleGroup.rotation[i] = newRot;
-
-                // 描画を行う
-                Graphics.DrawMesh (sample.mesh, newPos.Value, newRot.Value, sample.material, 0);
             }
         }
     }
@@ -80,7 +86,8 @@ namespace Es.Ecs.Sample._01
             archetype = entityManager.CreateArchetype (
                 typeof (TransformMatrix),
                 typeof (Position),
-                typeof (Rotation)
+                typeof (Rotation),
+                typeof (FloatData)
                 // GPU Instancingを利用できる場合に指定
                 // typeof (MeshInstanceRenderer)
             );
@@ -114,22 +121,26 @@ namespace Es.Ecs.Sample._01
                     {
                         Value = Quaternion.Euler (0f, Random.Range (0.0f, 180.0f), 90f)
                     });
+                    entityManager.SetSharedComponentData (entity, new FloatData
+                    {
+                        Value = Time.deltaTime * delta
+                    });
                 }
             }
 
             // DrawMeshで描画を行う
             // エンティティの Position / Rotation を取得しつつメッシュを描画
-            // var entities = entityManager.GetAllEntities();
-            // foreach(var entity in entities)
-            // {
-            //     var position = entityManager.GetComponentData<Position>(entity);
-            //     var rotation = entityManager.GetComponentData<Rotation>(entity);
-            //     Graphics.DrawMesh(mesh, position.Value, rotation.Value, material, 0);
-            // }
+            var entities = entityManager.GetAllEntities();
+            foreach(var entity in entities)
+            {
+                var position = entityManager.GetComponentData<Position>(entity);
+                var rotation = entityManager.GetComponentData<Rotation>(entity);
+                Graphics.DrawMesh(mesh, position.Value, rotation.Value, material, 0);
+            }
             // GetAllEntitiesで取得したNativeArrayは明示的に破棄する。
             // また、GetAllEntityではAllocatorを指定できるが、デフォルトのTempだと
             // フレームをまたいで生存しているとメモリリークするので注意。
-            // entities.Dispose();
+            entities.Dispose();
         }
     }
 }
