@@ -29,13 +29,14 @@ namespace Es.Ecs.Sample._01
         // Inject属性で要求するグループを指定できる
         [Inject] private SampleGroup sampleGroup;
 
-        private Sample sample;
+        private EcsSample01 sample;
 
         // Systemが毎フレーム呼び出す処理
+        //TODO: 外部の値を使わないようにする(SystemのoverrideメソッドではGroupの値のみを使って計算をするように)
         protected override void OnUpdate ()
         {
             if (sample == null)
-                sample = GameObject.FindObjectOfType<Sample> ();
+                sample = GameObject.FindObjectOfType<EcsSample01> ();
 
             for (int i = 0; i < sampleGroup.Length; i++)
             {
@@ -58,7 +59,7 @@ namespace Es.Ecs.Sample._01
     //=================================================================================================/
     // ECSを利用するサンプルクラス
     //=================================================================================================/
-    public class Sample : MonoBehaviour
+    public class EcsSample01 : MonoBehaviour
     {
         public Mesh mesh;
         public Material material;

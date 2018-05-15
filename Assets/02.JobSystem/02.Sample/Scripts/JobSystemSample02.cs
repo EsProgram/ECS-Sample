@@ -43,6 +43,14 @@ namespace Es.JobSystem.Sample._02
             // 2番目のパラメータは、内部でのループ分割数(バッチ数)です。
             JobHandle jobHandle = job.Schedule (position.Length, 1);
 
+            // 今回はMainThreadで行っておきたい処理が無いので呼び出す意味はないが
+            // メインスレッドで何か計算している最中にJobを動かしておきたい場合は以下のコメントを外す
+            JobHandle.ScheduleBatchedJobs();
+
+            // ......
+            // 何かMainThreadで行っておきたい処理
+            // ......
+
             jobHandle.Complete ();
 
             Debug.Log (job.position[0]);
