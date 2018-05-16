@@ -14,7 +14,6 @@ namespace Es.JobSystem.Sample._02
 
             public NativeArray<Vector3> position;
 
-            [ReadOnly]
             public float deltaTime;
 
             // 並列アクセスのためにインデックスを受け取って処理を行うExecuteを実装

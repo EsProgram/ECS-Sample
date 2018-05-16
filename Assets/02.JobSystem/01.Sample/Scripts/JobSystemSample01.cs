@@ -20,7 +20,6 @@ namespace Es.JobSystem.Sample._01
             // Jobには一般的にフレームの概念がないため、deltaTimeをJobにコピーする必要があります。
             // MainThreadは同じフレームまたは次のフレームでJobを待機しますが、Jobは
             // WorkerThreadで独立して処理が実行されます。
-            [ReadOnly]
             public float deltaTime;
 
             // Jobが実行するコードです。
