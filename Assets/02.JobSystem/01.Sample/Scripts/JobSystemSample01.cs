@@ -23,25 +23,25 @@ namespace Es.JobSystem.Sample._01
             public float deltaTime;
 
             // Jobが実行するコードです。
-            public void Execute ()
+            public void Execute()
             {
                 for (var i = 0; i < position.Length; i++)
                     position[i] = position[i] + velocity[i] * deltaTime;
             }
         }
 
-        public void Update ()
+        public void Update()
         {
             // NativeArrayはNativeContainer属性が付加されているので
             // MainThreadとWorkerThreadでデータを安全に共有することができます。
             // また、使い終えたらDisposeする必要があります。
-            var position = new NativeArray<Vector3> (500, Allocator.Persistent);
-            var velocity = new NativeArray<Vector3> (500, Allocator.Persistent);
+            var position = new NativeArray<Vector3>(500, Allocator.Persistent);
+            var velocity = new NativeArray<Vector3>(500, Allocator.Persistent);
             for (var i = 0; i < velocity.Length; i++)
-                velocity[i] = new Vector3 (0, 10, 0);
+                velocity[i] = new Vector3(0, 10, 0);
 
             // Jobの初期化処理です。
-            var job = new VelocityJob ()
+            var job = new VelocityJob()
             {
                 deltaTime = Time.deltaTime,
                 position = position,
@@ -49,7 +49,7 @@ namespace Es.JobSystem.Sample._01
             };
 
             // Jobをスケジューリングし、後でJobの完了を待つことができるJobHandleを返します。
-            JobHandle jobHandle = job.Schedule ();
+            JobHandle jobHandle = job.Schedule();
 
             // 今回はMainThreadで行っておきたい処理が無いので呼び出す意味はないが
             // メインスレッドで何か計算している最中にJobを動かしておきたい場合は以下のコメントを外す
@@ -63,12 +63,12 @@ namespace Es.JobSystem.Sample._01
             // Schedule実行後、すぐにCompleteを呼び出すことはお勧めできません。
             // 並列処理の恩恵を受けることがほぼできなくなるためです。
             // フレームの早い段階でJobをScheduleし、他の処理を行った後でCompleteを呼び出すのが最適です
-            jobHandle.Complete ();
+            jobHandle.Complete();
 
-            Debug.Log (job.position[0]);
+            Debug.Log(job.position[0]);
 
-            position.Dispose ();
-            velocity.Dispose ();
+            position.Dispose();
+            velocity.Dispose();
         }
     }
 }

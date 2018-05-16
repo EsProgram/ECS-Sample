@@ -10,7 +10,7 @@ namespace Es.Ecs.Sample._01
     public struct SpeedData : ISharedComponentData
     {
         public float Value;
-        public SpeedData (float value)
+        public SpeedData(float value)
         {
             Value = value;
         }
@@ -46,7 +46,7 @@ namespace Es.Ecs.Sample._01
         float deltaTime;
 
         // Systemが毎フレーム呼び出す処理
-        protected override void OnUpdate ()
+        protected override void OnUpdate()
         {
             deltaTime = Time.deltaTime;
 
@@ -59,7 +59,7 @@ namespace Es.Ecs.Sample._01
 
                 // 回転させる
                 var newRot = sampleGroup.rotation[i];
-                newRot.Value = math.mul (math.normalize (newRot.Value), math.axisAngle (math.up (), sampleGroup.speed[i].Value * deltaTime));
+                newRot.Value = math.mul(math.normalize(newRot.Value), math.axisAngle(math.up(), sampleGroup.speed[i].Value * deltaTime));
                 sampleGroup.rotation[i] = newRot;
             }
         }
@@ -77,40 +77,40 @@ namespace Es.Ecs.Sample._01
         private EntityManager entityManager;
         private EntityArchetype archetype;
 
-        [RuntimeInitializeOnLoadMethod (RuntimeInitializeLoadType.AfterSceneLoad)]
-        private void Start ()
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        private void Start()
         {
             // Entityの管理者を取得
-            entityManager = World.Active.GetOrCreateManager<EntityManager> ();
+            entityManager = World.Active.GetOrCreateManager<EntityManager>();
 
             // アーキタイプ(EntityがもつDataタイプの配列)の登録
-            archetype = entityManager.CreateArchetype (
-                typeof (Position), // Unity.Transformでデフォルトで定義してくれている「位置」を表すData
-                typeof (Rotation), // Unity.Transformでデフォルトで定義してくれている「回転」を表すData
-                typeof (SpeedData) // 独自定義した「微小な値」を表すData
+            archetype = entityManager.CreateArchetype(
+                typeof(Position), // Unity.Transformでデフォルトで定義してくれている「位置」を表すData
+                typeof(Rotation), // Unity.Transformでデフォルトで定義してくれている「回転」を表すData
+                typeof(SpeedData) // 独自定義した「微小な値」を表すData
             );
         }
 
-        private void Update ()
+        private void Update()
         {
             // Spaceキーが押さていたらMeshを生成
-            if (Input.GetKey (KeyCode.Space))
+            if (Input.GetKey(KeyCode.Space))
             {
                 for (int i = 0; i < createEntityPerFrame; i++)
                 {
                     // 管理者にEntityの生成と管理をお願いする
-                    var entity = entityManager.CreateEntity (archetype);
+                    var entity = entityManager.CreateEntity(archetype);
 
                     // 生成したEntityに対して、Dataを登録してもらう
-                    entityManager.SetComponentData (entity, new Position
+                    entityManager.SetComponentData(entity, new Position
                     {
-                        Value = new float3 (Random.Range (-20.0f, 20.0f), 20, Random.Range (-20.0f, 20.0f))
+                        Value = new float3(Random.Range(-20.0f, 20.0f), 20, Random.Range(-20.0f, 20.0f))
                     });
-                    entityManager.SetComponentData (entity, new Rotation
+                    entityManager.SetComponentData(entity, new Rotation
                     {
-                        Value = Quaternion.Euler (0f, Random.Range (0.0f, 180.0f), 90f)
+                        Value = Quaternion.Euler(0f, Random.Range(0.0f, 180.0f), 90f)
                     });
-                    entityManager.SetSharedComponentData (entity, new SpeedData (Random.Range (8, 15)));
+                    entityManager.SetSharedComponentData(entity, new SpeedData(Random.Range(8, 15)));
                 }
             }
 
@@ -121,17 +121,17 @@ namespace Es.Ecs.Sample._01
             //=================================================================================================/
             // DrawMeshで描画を行う
             // エンティティの Position / Rotation を取得しつつメッシュを描画
-            var entities = entityManager.GetAllEntities ();
+            var entities = entityManager.GetAllEntities();
             foreach (var entity in entities)
             {
-                var position = entityManager.GetComponentData<Position> (entity);
-                var rotation = entityManager.GetComponentData<Rotation> (entity);
-                Graphics.DrawMesh (mesh, position.Value, rotation.Value, material, 0);
+                var position = entityManager.GetComponentData<Position>(entity);
+                var rotation = entityManager.GetComponentData<Rotation>(entity);
+                Graphics.DrawMesh(mesh, position.Value, rotation.Value, material, 0);
             }
             // GetAllEntitiesで取得したNativeArrayは明示的に破棄する。
             // また、GetAllEntityではAllocatorを指定できるが、デフォルトのTempだと
             // フレームをまたいで生存しているとメモリリークするので注意。
-            entities.Dispose ();
+            entities.Dispose();
         }
     }
 }
