@@ -1,44 +1,37 @@
 ﻿using Unity.Collections;
-using Unity.Collections;
 using Unity.Entities;
-using Unity.Entities;
-using Unity.Jobs;
-using Unity.Jobs;
 using Unity.Mathematics;
-using Unity.Mathematics;
-using Unity.Rendering;
-using Unity.Rendering;
-using Unity.Transforms;
 using Unity.Transforms;
 using UnityEngine;
-using UnityEngine;
-
-// TODO: JobSystemで動かせるように色々改造計画
 
 namespace Es.Ecs.Sample._01
 {
-    // 独自のIComponentDataを継承するDataを定義。
-    // このDataはDeltaTime * Valueを表現する。
-    public struct DeltaValueData : IComponentData
+    // 独自のDataを定義。
+    public struct SpeedData : ISharedComponentData
     {
         public float Value;
-        public DeltaValueData(float value)
+        public SpeedData(float value)
         {
-            Value = value * Time.deltaTime;
+            Value = value;
         }
     }
 
-    // Groupを定義。
-    // IComponentDataを実装したデータが要求データとなる。
-    // Systemが要求するのは複数のEntityで、Groupはそれを表現するために
-    // IComponentDataの配列であるComponentDataArrayを用いる。
-    // Lengthには要求するComponentDataを持つEntityの数が格納される。
+    // Group(Systemに渡されるEntityの纏まり。つまり要求されるデータの配列のようなもの)を定義。
+    // IComponentDataかISharedComponentDataを実装したDataがSystemに要求されるデータになります。
+    // Lengthには要求するDataを持つEntityの数が格納されます。
     public struct SampleGroup
     {
+        // ComponentDataArrayはNativeContainer属性が付加されているので
+        // Thread間でデータを共有できます。
         public ComponentDataArray<Position> postion;
         public ComponentDataArray<Rotation> rotation;
+
+        // SharedComponentDataArrayはReadOnlyを指定しないとエラーになります。
+        // SharedComponentDataArrayはNativeContainerではないため、値の代入行為が不適切であるからです。
+        // SharedComponentDataArrayは、Systemで計算に使う値を格納する用途で使います。
+        // 値はEntityごとに別のものを持たせても大丈夫です。
         [ReadOnly]
-        public ComponentDataArray<DeltaValueData> delta;
+        public SharedComponentDataArray<SpeedData> speed;
         public int Length;
     }
 
@@ -50,31 +43,36 @@ namespace Es.Ecs.Sample._01
         // (Systemに特定のDataへの依存性を注入する)
         [Inject] private SampleGroup sampleGroup;
 
+        float deltaTime;
+
         // Systemが毎フレーム呼び出す処理
         protected override void OnUpdate()
         {
+            deltaTime = Time.deltaTime;
+
             for (int i = 0; i < sampleGroup.Length; i++)
             {
                 // 落下させる
                 var newPos = sampleGroup.postion[i];
-                newPos.Value.y -= sampleGroup.delta[i].Value;
+                newPos.Value.y -= sampleGroup.speed[i].Value * deltaTime;
                 sampleGroup.postion[i] = newPos;
 
                 // 回転させる
                 var newRot = sampleGroup.rotation[i];
-                newRot.Value = math.mul(math.normalize(newRot.Value), math.axisAngle(math.up(), sampleGroup.delta[i].Value));
+                newRot.Value = math.mul(math.normalize(newRot.Value), math.axisAngle(math.up(), sampleGroup.speed[i].Value * deltaTime));
                 sampleGroup.rotation[i] = newRot;
             }
         }
     }
 
-    // ECSを利用するサンプルクラス
+    // ECSを利用するサンプルクラス。
+    // JobSystemを利用していないため、MainThreadで動く。
+    // このサンプルでは、大量のMeshの移動と回転を行い、描画する。
     public class EcsSample01 : MonoBehaviour
     {
         public Mesh mesh;
         public Material material;
         public int createEntityPerFrame = 100;
-        // 落下速度
         public float delta = 10f;
 
         private EntityManager entityManager;
@@ -88,34 +86,23 @@ namespace Es.Ecs.Sample._01
 
             // アーキタイプ(EntityがもつDataタイプの配列)の登録
             archetype = entityManager.CreateArchetype(
-                typeof(TransformMatrix),
-                typeof(Position),
-                typeof(Rotation),
-                typeof(DeltaValueData)
-                // GPU Instancingを利用できる場合に指定
-                // typeof (MeshInstanceRenderer)
+                typeof(Position), // Unity.Transformでデフォルトで定義してくれている「位置」を表すData
+                typeof(Rotation), // Unity.Transformでデフォルトで定義してくれている「回転」を表すData
+                typeof(SpeedData) // 独自定義した「微小な値」を表すData
             );
         }
 
         private void Update()
         {
+            // Spaceキーが押さていたらMeshを生成
             if (Input.GetKey(KeyCode.Space))
             {
                 for (int i = 0; i < createEntityPerFrame; i++)
                 {
-                    // 管理者にEntityを生成して管理してもらう
+                    // 管理者にEntityの生成と管理をお願いする
                     var entity = entityManager.CreateEntity(archetype);
 
-                    // GPU Instancingを行う場合にはMeshInstanceRendererが使える
-                    // 管理者にさっき生成したEntityに対して、各Entity間で共有できるDataを登録してもらう
-                    // MeshInstanceRendererはISharedComponentDataを実装している
-                    // entityManager.SetSharedComponentData (entity, new MeshInstanceRenderer
-                    // {
-                    //     mesh = mesh,
-                    //     material = material,
-                    // });
-
-                    // 管理者にさっき生成したEntityに対して、Dataを登録してもらう
+                    // 生成したEntityに対して、Dataを登録してもらう
                     entityManager.SetComponentData(entity, new Position
                     {
                         Value = new float3(Random.Range(-20.0f, 20.0f), 20, Random.Range(-20.0f, 20.0f))
@@ -124,11 +111,15 @@ namespace Es.Ecs.Sample._01
                     {
                         Value = Quaternion.Euler(0f, Random.Range(0.0f, 180.0f), 90f)
                     });
-                    entityManager.SetComponentData(entity, new DeltaValueData(delta));
+                    entityManager.SetSharedComponentData(entity, new SpeedData(delta));
                 }
             }
 
-            // TODO: 描画用EntityとSystem作って描画させたほうが一貫性がある。出来ればそれやりたい。
+            //=================================================================================================/
+            // HACK:
+            //    本来であれば Mesh / Position / Rotation / Material を持つEntityに対して
+            //    描画を行うSystemを作るべきだと思うが、サンプルコードが冗長になるためここに描画処理を書いてある。
+            //=================================================================================================/
             // DrawMeshで描画を行う
             // エンティティの Position / Rotation を取得しつつメッシュを描画
             var entities = entityManager.GetAllEntities();

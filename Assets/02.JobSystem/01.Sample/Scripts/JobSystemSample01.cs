@@ -7,18 +7,20 @@ namespace Es.JobSystem.Sample._01
     public class JobSystemSample01 : MonoBehaviour
     {
         // Jobを作る際、Jobでアクセスされる全てのデータをJob内に宣言します。
+        // 宣言が可能なのはNativeContainer及びBlittable型のみです。
         struct VelocityJob : IJob
         {
-            // 読み取り専用として宣言することにより複数のJobが並列にデータにアクセスできます。
+            // 読み取り専用という付加情報を与えることで複数のJobが並列にデータにアクセスできるようになります。
             [ReadOnly]
             public NativeArray<Vector3> velocity;
 
-            // デフォルトでは、コンテナは読み書きが可能です。
+            // デフォルトでは、コンテナは読み書きが可能です(つまり、MainThreadで結果を取り出すことができます)。
             public NativeArray<Vector3> position;
 
             // Jobには一般的にフレームの概念がないため、deltaTimeをJobにコピーする必要があります。
             // MainThreadは同じフレームまたは次のフレームでJobを待機しますが、Jobは
             // WorkerThreadで独立して処理が実行されます。
+            [ReadOnly]
             public float deltaTime;
 
             // Jobが実行するコードです。
@@ -32,7 +34,7 @@ namespace Es.JobSystem.Sample._01
         public void Update ()
         {
             // NativeArrayはNativeContainer属性が付加されているので
-            // MainThreadとWorkerThreadで共有データとして扱われます(コピーされない)。
+            // MainThreadとWorkerThreadでデータを安全に共有することができます。
             // また、使い終えたらDisposeする必要があります。
             var position = new NativeArray<Vector3> (500, Allocator.Persistent);
             var velocity = new NativeArray<Vector3> (500, Allocator.Persistent);
