@@ -104,13 +104,13 @@ namespace Es.Ecs.Sample._01
                     // 生成したEntityに対して、Dataを登録してもらう
                     entityManager.SetComponentData(entity, new Position
                     {
-                        Value = new float3(Random.Range(-20.0f, 20.0f), 20, Random.Range(-20.0f, 20.0f))
+                        Value = new float3(Random.Range(-20, 20), 20, Random.Range(-20, 20))
                     });
                     entityManager.SetComponentData(entity, new Rotation
                     {
-                        Value = Quaternion.Euler(0f, Random.Range(0.0f, 180.0f), 90f)
+                        Value = Quaternion.Euler(0, Random.Range(0, 180), 90)
                     });
-                    entityManager.SetSharedComponentData(entity, new SpeedData(Random.Range(8, 15)));
+                    entityManager.SetSharedComponentData(entity, new SpeedData(Random.Range(5,20)));
                 }
             }
 
