@@ -78,7 +78,6 @@ namespace Es.EcsJobSystem.Sample._03
                 deltaTime = Time.deltaTime
             };
             var handle = job.Schedule(sampleGroup.Length, 32, inputDeps);
-            JobHandle.ScheduleBatchedJobs();
             return handle;
         }
     }
