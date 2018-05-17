@@ -35,8 +35,8 @@ namespace Es.JobSystem.Sample._01
             // NativeArrayはNativeContainer属性が付加されているので
             // MainThreadとWorkerThreadでデータを安全に共有することができます。
             // また、使い終えたらDisposeする必要があります。
-            var position = new NativeArray<Vector3>(500, Allocator.Persistent);
-            var velocity = new NativeArray<Vector3>(500, Allocator.Persistent);
+            var position = new NativeArray<Vector3>(100000, Allocator.Persistent);
+            var velocity = new NativeArray<Vector3>(100000, Allocator.Persistent);
             for (var i = 0; i < velocity.Length; i++)
                 velocity[i] = new Vector3(0, 10, 0);
 
@@ -51,13 +51,14 @@ namespace Es.JobSystem.Sample._01
             // Jobをスケジューリングし、後でJobの完了を待つことができるJobHandleを返します。
             JobHandle jobHandle = job.Schedule();
 
-            // 今回はMainThreadで行っておきたい処理が無いので呼び出す意味はないが
-            // メインスレッドで何か計算している最中にJobを動かしておきたい場合は以下のコメントを外す
+            // メインスレッドで何か計算している最中にJobを動かしておきたい場合は以下のメソッドを呼ぶ
             JobHandle.ScheduleBatchedJobs();
 
             // ......
             // 何かMainThreadで行っておきたい処理
+            // MainThreadで10[ms]かかる重い処理を想定
             // ......
+            System.Threading.Thread.Sleep(10);
 
             // Jobが完了したことを確認します(完了してなければ完了まで待ちます)
             // Schedule実行後、すぐにCompleteを呼び出すことはお勧めできません。
