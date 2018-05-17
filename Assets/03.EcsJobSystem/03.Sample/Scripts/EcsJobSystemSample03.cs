@@ -105,6 +105,16 @@ namespace Es.EcsJobSystem.Sample._03
 
         private void Update()
         {
+            var entities = entityManager.GetAllEntities();
+            var job = new GetDataJob()
+            {
+                position = new NativeArray<Position>(entities.Length, Allocator.Temp),
+                rotation = new NativeArray<Rotation>(entities.Length, Allocator.Temp),
+                entity = entities
+            };
+            var jobHandle = job.Schedule(entities.Length, 32);
+            JobHandle.ScheduleBatchedJobs();
+
             if (Input.GetKey(KeyCode.Space))
             {
                 for (int i = 0; i < createEntityPerFrame; i++)
@@ -123,17 +133,7 @@ namespace Es.EcsJobSystem.Sample._03
                 }
             }
 
-            // TODO:素直にこのJob(Entityいらないver)をMoveRotateJobに連結したらどうなる？
-            var entities = entityManager.GetAllEntities();
-            var job = new GetDataJob()
-            {
-                position = new NativeArray<Position>(entities.Length, Allocator.Temp),
-                rotation = new NativeArray<Rotation>(entities.Length, Allocator.Temp),
-                entity = entities
-            };
-            var jobHandle = job.Schedule(entities.Length, 32);
             jobHandle.Complete();
-
             for (int i = 0; i < entities.Length; ++i)
                 Graphics.DrawMesh(mesh, job.position[i].Value, job.rotation[i].Value, material, 0);
             job.position.Dispose();
