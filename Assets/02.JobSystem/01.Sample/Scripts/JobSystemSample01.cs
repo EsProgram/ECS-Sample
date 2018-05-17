@@ -51,13 +51,14 @@ namespace Es.JobSystem.Sample._01
             // Jobをスケジューリングし、後でJobの完了を待つことができるJobHandleを返します。
             JobHandle jobHandle = job.Schedule();
 
-            // 今回はMainThreadで行っておきたい処理が無いので呼び出す意味はないが
-            // メインスレッドで何か計算している最中にJobを動かしておきたい場合は以下のコメントを外す
-            // JobHandle.ScheduleBatchedJobs();
+            // メインスレッドで何か計算している最中にJobを動かしておきたい場合は以下のメソッドを呼ぶ
+            JobHandle.ScheduleBatchedJobs();
 
             // ......
             // 何かMainThreadで行っておきたい処理
+            // MainThreadで10[ms]かかる重い処理を想定
             // ......
+            System.Threading.Thread.Sleep(10);
 
             // Jobが完了したことを確認します(完了してなければ完了まで待ちます)
             // Schedule実行後、すぐにCompleteを呼び出すことはお勧めできません。
