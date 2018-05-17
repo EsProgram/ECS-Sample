@@ -70,7 +70,6 @@ namespace Es.EcsJobSystem.Sample._02
         }
     }
 
-    // ECS + JobSystemを利用するサンプルクラス。
     public class EcsJobSystemSample02 : MonoBehaviour
     {
         public Mesh mesh;
