@@ -7,12 +7,7 @@ using UnityEngine;
 
 namespace Es.EcsJobSystem.Sample._01
 {
-    // IJobProcessComponentDataを実装する際にジェネリックパラメータには
-    // ISharedComponentDataを指定できない。IComponentDataを実装したDataのみ指定できる。
-    // そもそもJobのフィールドに共有用のフィールドが置けるので、ISharedComponentDataは指定できる必要がない。
-    // SpeedDataをMoveRotateJobのフィールドとして入力するようにしても良いが、今回のサンプルでは説明上の都合で
-    // IComponentDataを実装したDataとしてJobに渡すようにする。
-    public struct SpeedData : IComponentData
+    public struct SpeedData : ISharedComponentData
     {
         public float Value;
         public SpeedData(float value)
@@ -23,11 +18,10 @@ namespace Es.EcsJobSystem.Sample._01
 
     public struct SampleGroup
     {
-        public ComponentDataArray<Position> postion;
+        public ComponentDataArray<Position> position;
         public ComponentDataArray<Rotation> rotation;
-
         [ReadOnly]
-        public ComponentDataArray<SpeedData> speed;
+        public SharedComponentDataArray<SpeedData> speed;
         public int Length;
     }
 
@@ -35,34 +29,44 @@ namespace Es.EcsJobSystem.Sample._01
     // IJobProcessComponentDataを実装することで、Genericパラメータに指定したDataを
     // 対象とするJobを定義することができる。
     // Job内で宣言が可能なのはNativeContainer及びBlittable型のみなことに注意
-    struct MoveRotateJob : IJobProcessComponentData<Position, Rotation, SpeedData>
+    struct MoveRotateJob : IJobParallelFor
     {
+        public ComponentDataArray<Position> position;
+        public ComponentDataArray<Rotation> rotation;
+        public SharedComponentDataArray<SpeedData> speed;
         public float deltaTime;
 
-        public void Execute(ref Position position, ref Rotation rotation, [ReadOnly] ref SpeedData speed)
+        public void Execute(int i)
         {
-            var newPos = position;
-            newPos.Value.y -= speed.Value * deltaTime;
-            position = newPos;
+            var newPos = position[i];
+            newPos.Value.y -= speed[i].Value * deltaTime;
+            position[i] = newPos;
 
-            var newRot = rotation;
-            newRot.Value = math.mul(math.normalize(newRot.Value), math.axisAngle(math.up(), speed.Value * deltaTime));
-            rotation = newRot;
+            var newRot = rotation[i];
+            newRot.Value = math.mul(math.normalize(newRot.Value), math.axisAngle(math.up(), speed[i].Value * deltaTime));
+            rotation[i] = newRot;
         }
     }
 
     // JobComponentSystemは抽象クラス。
-    // これを実装したSystemではGroup変数の保有およびそれに対するInjectが不要。
+    // IJobProcessComponentDataを利用するとInjectが不要になったりと
+    // スマートに書けるようになるが、本サンプルでは愚直にSystemをJob化する
     public class SampleSystem : JobComponentSystem
     {
+        [Inject] private SampleGroup sampleGroup;
+
         // SystemではJobを生成し、ScheduleしてJobHandleを返す
         protected override JobHandle OnUpdate(JobHandle inputDeps)
         {
             var job = new MoveRotateJob()
             {
+                position = sampleGroup.position,
+                rotation = sampleGroup.rotation,
+                speed = sampleGroup.speed,
                 deltaTime = Time.deltaTime
             };
-            var handle = job.Schedule(this, 32, inputDeps);
+            var handle = job.Schedule(sampleGroup.Length, 32, inputDeps);
+            JobHandle.ScheduleBatchedJobs();
             return handle;
         }
     }
@@ -105,7 +109,7 @@ namespace Es.EcsJobSystem.Sample._01
                     {
                         Value = Quaternion.Euler(0, Random.Range(0, 180), 90)
                     });
-                    entityManager.SetComponentData(entity, new SpeedData(Random.Range(5, 20)));
+                    entityManager.SetSharedComponentData(entity, new SpeedData(Random.Range(5, 20)));
                 }
             }
 
