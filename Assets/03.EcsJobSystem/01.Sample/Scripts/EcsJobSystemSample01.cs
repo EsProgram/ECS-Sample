@@ -62,7 +62,7 @@ namespace Es.EcsJobSystem.Sample._01
             {
                 deltaTime = Time.deltaTime
             };
-            var handle = job.Schedule(this, 1, inputDeps);
+            var handle = job.Schedule(this, 32, inputDeps);
             return handle;
         }
     }
