@@ -6,7 +6,9 @@ using UnityEngine;
 
 namespace Es.Ecs.Sample._01
 {
-    // 独自のDataを定義。
+    // 独自のDataを定義する場合、IComponentDataかISharedComponentDataを実装します。
+    // IComponentDataは、座標情報などのEntityごとに異なるデータに適しています。
+    // ISharedComponentDataは、多くのEntityに共通するものがある場合に適しています。
     public struct SpeedData : ISharedComponentData
     {
         public float Value;
@@ -27,9 +29,9 @@ namespace Es.Ecs.Sample._01
         public ComponentDataArray<Rotation> rotation;
 
         // SharedComponentDataArrayはReadOnlyを指定しないとエラーになります。
-        // SharedComponentDataArrayはNativeContainerではないため、値の代入行為が不適切であるからです。
+        // SharedComponentDataArrayはEntity間で共通の値であり、NativeContainerではないため、
+        // 値の代入行為が不適切であるからです。
         // SharedComponentDataArrayは、Systemで計算に使う値を格納する用途で使います。
-        // 値はEntityごとに別のものを持たせても大丈夫です。
         [ReadOnly]
         public SharedComponentDataArray<SpeedData> speed;
         public int Length;
@@ -110,7 +112,7 @@ namespace Es.Ecs.Sample._01
                     {
                         Value = Quaternion.Euler(0, Random.Range(0, 180), 90)
                     });
-                    entityManager.SetSharedComponentData(entity, new SpeedData(Random.Range(5,20)));
+                    entityManager.SetSharedComponentData(entity, new SpeedData(10));
                 }
             }
 
