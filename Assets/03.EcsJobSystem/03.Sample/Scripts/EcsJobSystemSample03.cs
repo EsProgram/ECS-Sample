@@ -25,22 +25,21 @@ namespace Es.EcsJobSystem.Sample._03
         public int Length;
     }
 
+    [ComputeJobOptimization]
     struct MoveRotateJob : IJobParallelFor
     {
-        public ComponentDataArray<Position> position;
-        public ComponentDataArray<Rotation> rotation;
-        public SharedComponentDataArray<SpeedData> speed;
+        public SampleGroup sampleGroup;
         public float deltaTime;
 
         public void Execute(int i)
         {
-            var newPos = position[i];
-            newPos.Value.y -= speed[i].Value * deltaTime;
-            position[i] = newPos;
+            var newPos = sampleGroup.position[i];
+            newPos.Value.y -= sampleGroup.speed[i].Value * deltaTime;
+            sampleGroup.position[i] = newPos;
 
-            var newRot = rotation[i];
-            newRot.Value = math.mul(math.normalize(newRot.Value), math.axisAngle(math.up(), speed[i].Value * deltaTime));
-            rotation[i] = newRot;
+            var newRot = sampleGroup.rotation[i];
+            newRot.Value = math.mul(math.normalize(newRot.Value), math.axisAngle(math.up(), sampleGroup.speed[i].Value * deltaTime));
+            sampleGroup.rotation[i] = newRot;
         }
     }
 
@@ -56,8 +55,6 @@ namespace Es.EcsJobSystem.Sample._03
         {
             //! 静的データへのアクセス。
             //! 通常時に実行はできたが、Burstコンパイラで最適化をかけたら実行時エラーが出た。
-            //! 今後静的解析でこういったことが禁止される可能性もあるので
-            //! こういった方法はグレー。
             var entityManager = World.Active.GetOrCreateManager<EntityManager>();
             position[i] = entityManager.GetComponentData<Position>(entity[i]);
             rotation[i] = entityManager.GetComponentData<Rotation>(entity[i]);
@@ -72,9 +69,7 @@ namespace Es.EcsJobSystem.Sample._03
         {
             var job = new MoveRotateJob()
             {
-                position = sampleGroup.position,
-                rotation = sampleGroup.rotation,
-                speed = sampleGroup.speed,
+                sampleGroup = sampleGroup,
                 deltaTime = Time.deltaTime
             };
             var handle = job.Schedule(sampleGroup.Length, 32, inputDeps);
@@ -105,16 +100,6 @@ namespace Es.EcsJobSystem.Sample._03
 
         private void Update()
         {
-            var entities = entityManager.GetAllEntities();
-            var job = new GetDataJob()
-            {
-                position = new NativeArray<Position>(entities.Length, Allocator.Temp),
-                rotation = new NativeArray<Rotation>(entities.Length, Allocator.Temp),
-                entity = entities
-            };
-            var jobHandle = job.Schedule(entities.Length, 32);
-            JobHandle.ScheduleBatchedJobs();
-
             if (Input.GetKey(KeyCode.Space))
             {
                 for (int i = 0; i < createEntityPerFrame; i++)
@@ -129,10 +114,18 @@ namespace Es.EcsJobSystem.Sample._03
                     {
                         Value = Quaternion.Euler(0, Random.Range(0, 180), 90)
                     });
-                    entityManager.SetSharedComponentData(entity, new SpeedData(Random.Range(5, 20)));
+                    entityManager.SetSharedComponentData(entity, new SpeedData(10));
                 }
             }
 
+            var entities = entityManager.GetAllEntities();
+            var job = new GetDataJob()
+            {
+                position = new NativeArray<Position>(entities.Length, Allocator.Temp),
+                rotation = new NativeArray<Rotation>(entities.Length, Allocator.Temp),
+                entity = entities
+            };
+            var jobHandle = job.Schedule(entities.Length, 32);
             jobHandle.Complete();
             for (int i = 0; i < entities.Length; ++i)
                 Graphics.DrawMesh(mesh, job.position[i].Value, job.rotation[i].Value, material, 0);

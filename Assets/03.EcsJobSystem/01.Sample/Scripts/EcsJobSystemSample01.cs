@@ -26,25 +26,21 @@ namespace Es.EcsJobSystem.Sample._01
     }
 
     // 移動と回転処理を行うJobを定義。
-    // IJobProcessComponentDataを実装することで、Genericパラメータに指定したDataを
-    // 対象とするJobを定義することができる。
     // Job内で宣言が可能なのはNativeContainer及びBlittable型のみなことに注意
     struct MoveRotateJob : IJobParallelFor
     {
-        public ComponentDataArray<Position> position;
-        public ComponentDataArray<Rotation> rotation;
-        public SharedComponentDataArray<SpeedData> speed;
+        public SampleGroup sampleGroup;
         public float deltaTime;
 
         public void Execute(int i)
         {
-            var newPos = position[i];
-            newPos.Value.y -= speed[i].Value * deltaTime;
-            position[i] = newPos;
+            var newPos = sampleGroup.position[i];
+            newPos.Value.y -= sampleGroup.speed[i].Value * deltaTime;
+            sampleGroup.position[i] = newPos;
 
-            var newRot = rotation[i];
-            newRot.Value = math.mul(math.normalize(newRot.Value), math.axisAngle(math.up(), speed[i].Value * deltaTime));
-            rotation[i] = newRot;
+            var newRot = sampleGroup.rotation[i];
+            newRot.Value = math.mul(math.normalize(newRot.Value), math.axisAngle(math.up(), sampleGroup.speed[i].Value * deltaTime));
+            sampleGroup.rotation[i] = newRot;
         }
     }
 
@@ -60,9 +56,7 @@ namespace Es.EcsJobSystem.Sample._01
         {
             var job = new MoveRotateJob()
             {
-                position = sampleGroup.position,
-                rotation = sampleGroup.rotation,
-                speed = sampleGroup.speed,
+                sampleGroup = sampleGroup,
                 deltaTime = Time.deltaTime
             };
             var handle = job.Schedule(sampleGroup.Length, 32, inputDeps);
@@ -108,7 +102,7 @@ namespace Es.EcsJobSystem.Sample._01
                     {
                         Value = Quaternion.Euler(0, Random.Range(0, 180), 90)
                     });
-                    entityManager.SetSharedComponentData(entity, new SpeedData(Random.Range(5, 20)));
+                    entityManager.SetSharedComponentData(entity, new SpeedData(10));
                 }
             }
 
