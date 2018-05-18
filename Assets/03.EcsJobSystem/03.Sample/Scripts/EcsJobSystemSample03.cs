@@ -25,6 +25,7 @@ namespace Es.EcsJobSystem.Sample._03
         public int Length;
     }
 
+    [ComputeJobOptimization]
     struct MoveRotateJob : IJobParallelFor
     {
         public SampleGroup sampleGroup;
@@ -54,8 +55,6 @@ namespace Es.EcsJobSystem.Sample._03
         {
             //! 静的データへのアクセス。
             //! 通常時に実行はできたが、Burstコンパイラで最適化をかけたら実行時エラーが出た。
-            //! 今後静的解析でこういったことが禁止される可能性もあるので
-            //! こういった方法はグレー。
             var entityManager = World.Active.GetOrCreateManager<EntityManager>();
             position[i] = entityManager.GetComponentData<Position>(entity[i]);
             rotation[i] = entityManager.GetComponentData<Rotation>(entity[i]);
