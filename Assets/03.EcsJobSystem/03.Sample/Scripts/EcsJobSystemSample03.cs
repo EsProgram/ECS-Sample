@@ -115,7 +115,7 @@ namespace Es.EcsJobSystem.Sample._03
                     {
                         Value = Quaternion.Euler(0, Random.Range(0, 180), 90)
                     });
-                    entityManager.SetSharedComponentData(entity, new SpeedData(Random.Range(5, 20)));
+                    entityManager.SetSharedComponentData(entity, new SpeedData(10));
                 }
             }
 

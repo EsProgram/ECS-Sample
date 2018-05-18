@@ -107,7 +107,7 @@ namespace Es.EcsJobSystem.Sample._02
                     {
                         Value = Quaternion.Euler(0, Random.Range(0, 180), 90)
                     });
-                    entityManager.SetComponentData(entity, new SpeedData(Random.Range(5, 20)));
+                    entityManager.SetComponentData(entity, new SpeedData(10));
                 }
             }
 
