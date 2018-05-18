@@ -27,20 +27,18 @@ namespace Es.EcsJobSystem.Sample._03
 
     struct MoveRotateJob : IJobParallelFor
     {
-        public ComponentDataArray<Position> position;
-        public ComponentDataArray<Rotation> rotation;
-        public SharedComponentDataArray<SpeedData> speed;
+        public SampleGroup sampleGroup;
         public float deltaTime;
 
         public void Execute(int i)
         {
-            var newPos = position[i];
-            newPos.Value.y -= speed[i].Value * deltaTime;
-            position[i] = newPos;
+            var newPos = sampleGroup.position[i];
+            newPos.Value.y -= sampleGroup.speed[i].Value * deltaTime;
+            sampleGroup.position[i] = newPos;
 
-            var newRot = rotation[i];
-            newRot.Value = math.mul(math.normalize(newRot.Value), math.axisAngle(math.up(), speed[i].Value * deltaTime));
-            rotation[i] = newRot;
+            var newRot = sampleGroup.rotation[i];
+            newRot.Value = math.mul(math.normalize(newRot.Value), math.axisAngle(math.up(), sampleGroup.speed[i].Value * deltaTime));
+            sampleGroup.rotation[i] = newRot;
         }
     }
 
@@ -72,9 +70,7 @@ namespace Es.EcsJobSystem.Sample._03
         {
             var job = new MoveRotateJob()
             {
-                position = sampleGroup.position,
-                rotation = sampleGroup.rotation,
-                speed = sampleGroup.speed,
+                sampleGroup = sampleGroup,
                 deltaTime = Time.deltaTime
             };
             var handle = job.Schedule(sampleGroup.Length, 32, inputDeps);
