@@ -26,8 +26,6 @@ namespace Es.EcsJobSystem.Sample._01
     }
 
     // 移動と回転処理を行うJobを定義。
-    // IJobProcessComponentDataを実装することで、Genericパラメータに指定したDataを
-    // 対象とするJobを定義することができる。
     // Job内で宣言が可能なのはNativeContainer及びBlittable型のみなことに注意
     struct MoveRotateJob : IJobParallelFor
     {
