@@ -25,7 +25,6 @@ namespace Es.EcsJobSystem.Sample._03
         public int Length;
     }
 
-    [ComputeJobOptimization]
     struct MoveRotateJob : IJobParallelFor
     {
         public SampleGroup sampleGroup;
